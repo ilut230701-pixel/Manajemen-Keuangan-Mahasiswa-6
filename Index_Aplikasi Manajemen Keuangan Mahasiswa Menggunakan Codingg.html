@@ -1,0 +1,436 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Manajemen Keuangan Mahasiswa</title>
+
+<style>
+*{
+    box-sizing: border-box;
+}
+
+html, body{
+    width:100%;
+    height:100%;
+    margin:0;
+    padding:0;
+    font-family: Arial, sans-serif;
+    background:#f2f4f8;
+}
+
+.container{
+    width:100%;
+    min-height:100vh;
+    padding:20px;
+}
+
+h1{
+    text-align:center;
+    color:#2c3e50;
+    margin-bottom:20px;
+}
+
+.card{
+    background:white;
+    padding:20px;
+    border-radius:12px;
+    box-shadow:0 6px 12px rgba(0,0,0,.1);
+    margin-bottom:20px;
+}
+
+.grid{
+    display:grid;
+    grid-template-columns:repeat(auto-fit, minmax(250px, 1fr));
+    gap:15px;
+}
+
+label{
+    font-weight:bold;
+}
+
+input, select, button{
+    padding:10px;
+    width:100%;
+    border-radius:6px;
+    border:1px solid #ccc;
+    font-size:14px;
+}
+
+/* JARAK TOMBOL */
+.btn-group{
+    display:grid;
+    grid-template-columns:repeat(auto-fit, minmax(140px, 1fr));
+    gap:15px;
+    margin-top:20px;
+}
+
+.btn-group button{
+    margin-bottom:10px;
+}
+
+button{
+    border:none;
+    color:white;
+    cursor:pointer;
+    font-weight:bold;
+}
+
+.add{background:#27ae60}
+.delete{background:#e74c3c}
+.reset{background:#f39c12}
+.save{background:#2980b9}
+.load{background:#8e44ad}
+
+.table-responsive {
+    overflow-x: auto;
+}
+
+.table-responsive table{
+    width:100%;
+    border-collapse:collapse;
+    min-width:600px;
+}
+
+th, td{
+    border:1px solid #ddd;
+    padding:10px;
+    text-align:center;
+    font-size:14px;
+}
+
+th{
+    background:#2c3e50;
+    color:white;
+}
+
+.summary{
+    display:grid;
+    grid-template-columns:repeat(auto-fit, minmax(200px, 1fr));
+    gap:15px;
+    margin-top:20px;
+}
+
+/* ===== SUMMARY FULL COLOR (SOFT & SELO) ===== */
+.box{
+    padding:24px;
+    border-radius:14px;
+    text-align:center;
+    font-weight:600;
+    box-shadow:0 8px 16px rgba(0,0,0,.08);
+}
+
+/* PEMASUKAN */
+.pemasukan{
+    background:linear-gradient(135deg, #e9f7ef, #dff3e8);
+    color:#1e6f45;
+}
+
+/* PENGELUARAN */
+.pengeluaran{
+    background:linear-gradient(135deg, #fdecea, #f9d6d2);
+    color:#8b2c24;
+}
+
+/* SALDO */
+.saldo{
+    background:linear-gradient(135deg, #eaf2fb, #dde9f6);
+    color:#1f4e79;
+    font-size:20px;
+}
+
+/* CARD FILTER & CHART */
+.card select{
+    width:200px;
+    margin-bottom:10px;
+}
+
+@media (max-width: 600px){
+    h1{font-size:20px;}
+    th, td{font-size:12px; padding:8px;}
+}
+</style>
+
+<!-- Chart.js -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+
+<body>
+
+<div class="container">
+<h1>Aplikasi Manajemen Keuangan Mahasiswa</h1>
+
+<!-- INPUT TRANSAKSI -->
+<div class="card">
+<h3>Input Transaksi</h3>
+
+<div class="grid">
+<div>
+<label>Tanggal</label>
+<input type="date" id="tanggal">
+</div>
+
+<div>
+<label>Nama Transaksi</label>
+<input type="text" id="nama">
+</div>
+
+<div>
+<label>Nominal (Rp)</label>
+<input type="number" id="nominal">
+</div>
+
+<div>
+<label>Jenis</label>
+<select id="jenis">
+<option value="">Pilih</option>
+<option>Pemasukan</option>
+<option>Pengeluaran</option>
+</select>
+</div>
+
+<div>
+<label>Kategori</label>
+<select id="kategori">
+<option value="">Pilih</option>
+<option>Makan & Minum</option>
+<option>Transportasi</option>
+<option>Pulsa & Internet</option>
+<option>Belanja</option>
+<option>Kesehatan</option>
+<option>Hiburan</option>
+<option>Keperluan Kuliah</option>
+<option>Tagihan</option>
+<option>Uang Saku</option>
+<option>Gaji / Upah</option>
+<option>Hadiah</option>
+<option>Beasiswa</option>
+<option>Lainnya</option>
+</select>
+</div>
+</div>
+
+<div class="btn-group">
+<button class="add" onclick="tambahData()">Tambah</button>
+<button class="delete" onclick="hapusTerakhir()">Hapus</button>
+<button class="reset" onclick="resetData()">Reset</button>
+<button class="save" onclick="simpanData()">Simpan</button>
+<button class="load" onclick="lihatData()">Lihat Data</button>
+</div>
+</div>
+
+<!-- TABEL & SUMMARY -->
+<div class="card">
+<div class="table-responsive">
+<table>
+<thead>
+<tr>
+<th>Tanggal</th>
+<th>Nama</th>
+<th>Nominal</th>
+<th>Jenis</th>
+<th>Kategori</th>
+</tr>
+</thead>
+<tbody id="tbody"></tbody>
+</table>
+</div>
+
+<div class="summary">
+<div class="box pemasukan">Total Pemasukan<br><span id="totalMasuk">Rp 0</span></div>
+<div class="box pengeluaran">Total Pengeluaran<br><span id="totalKeluar">Rp 0</span></div>
+<div class="box saldo">Saldo<br><span id="saldo">Rp 0</span></div>
+</div>
+</div>
+
+<!-- FILTER TRANSAKSI -->
+<div class="card">
+<h3>Filter Transaksi</h3>
+<select id="filterJenis" onchange="filterData()">
+<option value="Semua">Semua</option>
+<option value="Pemasukan">Pemasukan</option>
+<option value="Pengeluaran">Pengeluaran</option>
+</select>
+</div>
+
+<!-- GRAFIK -->
+<div class="card">
+<h3>Grafik Pemasukan & Pengeluaran</h3>
+<canvas id="chartKeuangan" height="100"></canvas>
+</div>
+
+<script>
+let data = [];
+let totalMasuk = 0;
+let totalKeluar = 0;
+
+document.getElementById("tanggal").valueAsDate = new Date();
+
+// FORMAT RUPIAH
+function rupiah(x){
+    return "Rp " + x.toLocaleString("id-ID");
+}
+
+// TAMBAH DATA DENGAN VALIDASI
+function tambahData(){
+    let t = tanggal.value;
+    let n = nama.value;
+    let nom = parseInt(nominal.value);
+    let j = jenis.value;
+    let k = kategori.value;
+
+    if(!t||!n||!nom||!j||!k){
+        alert("Semua data wajib diisi!");
+        return;
+    }
+
+    if(nom <= 0){
+        alert("Nominal harus lebih dari 0!");
+        return;
+    }
+
+    if(j==="Pemasukan") totalMasuk += nom;
+    else totalKeluar += nom;
+
+    data.push({t,n,nom,j,k});
+    render();
+    updateChart();
+}
+
+// RENDER TABEL & SUMMARY
+function render(){
+    let tb = document.getElementById("tbody");
+    tb.innerHTML = "";
+
+    data.forEach(d=>{
+        tb.innerHTML += `
+        <tr>
+        <td>${d.t}</td>
+        <td>${d.n}</td>
+        <td>${rupiah(d.nom)}</td>
+        <td>${d.j}</td>
+        <td>${d.k}</td>
+        </tr>`;
+    });
+
+    document.getElementById("totalMasuk").innerText = rupiah(totalMasuk);
+    document.getElementById("totalKeluar").innerText = rupiah(totalKeluar);
+
+    let saldoEl = document.getElementById("saldo");
+    let saldoValue = totalMasuk - totalKeluar;
+    saldoEl.innerText = rupiah(saldoValue);
+    saldoEl.style.color = saldoValue < 0 ? "#c0392b" : "#1f4e79";
+}
+
+// HAPUS DATA TERAKHIR
+function hapusTerakhir(){
+    if(data.length===0) return;
+
+    let d = data.pop();
+    if(d.j==="Pemasukan") totalMasuk -= d.nom;
+    else totalKeluar -= d.nom;
+
+    render();
+    updateChart();
+}
+
+// RESET SEMUA DATA
+function resetData(){
+    if(confirm("Hapus semua data?")){
+        data=[];
+        totalMasuk=0;
+        totalKeluar=0;
+        render();
+        localStorage.clear();
+        updateChart();
+    }
+}
+
+// SIMPAN & LIHAT DATA
+function simpanData(){
+    localStorage.setItem("dataKeuangan",JSON.stringify(data));
+    alert("Data berhasil disimpan!");
+}
+
+function lihatData(){
+    let d = localStorage.getItem("dataKeuangan");
+    if(!d){
+        alert("Belum ada data tersimpan");
+        return;
+    }
+
+    data = JSON.parse(d);
+    totalMasuk=0;
+    totalKeluar=0;
+
+    data.forEach(x=>{
+        if(x.j==="Pemasukan") totalMasuk+=x.nom;
+        else totalKeluar+=x.nom;
+    });
+
+    render();
+    updateChart();
+}
+
+// FILTER DATA
+function filterData(){
+    let jenisFilter = document.getElementById("filterJenis").value;
+    let filteredData = jenisFilter === "Semua" ? data : data.filter(d=>d.j === jenisFilter);
+
+    let tb = document.getElementById("tbody");
+    tb.innerHTML = "";
+
+    filteredData.forEach(d=>{
+        tb.innerHTML += `
+        <tr>
+        <td>${d.t}</td>
+        <td>${d.n}</td>
+        <td>${rupiah(d.nom)}</td>
+        <td>${d.j}</td>
+        <td>${d.k}</td>
+        </tr>`;
+    });
+}
+
+// CHART.JS
+let chart; // global chart object
+function updateChart(){
+    let ctx = document.getElementById('chartKeuangan').getContext('2d');
+
+    let totalPemasukan = data.filter(d=>d.j==="Pemasukan").reduce((sum,d)=>sum+d.nom,0);
+    let totalPengeluaran = data.filter(d=>d.j==="Pengeluaran").reduce((sum,d)=>sum+d.nom,0);
+
+    if(chart) chart.destroy(); // hapus chart lama
+
+    chart = new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels: ['Pemasukan','Pengeluaran'],
+            datasets: [{
+                label: 'Jumlah (Rp)',
+                data: [totalPemasukan, totalPengeluaran],
+                backgroundColor: ['#27ae60','#e74c3c']
+            }]
+        },
+        options: {
+            responsive:true,
+            plugins:{
+                legend:{display:false},
+                tooltip:{callbacks:{
+                    label: function(context){
+                        return "Rp " + context.raw.toLocaleString("id-ID");
+                    }
+                }}
+            },
+            scales:{
+                y:{ beginAtZero:true }
+            }
+        }
+    });
+}
+
+window.onload = lihatData;
+</script>
+
+</body>
+</html>
